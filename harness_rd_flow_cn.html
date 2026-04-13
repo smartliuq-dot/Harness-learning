@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Native 研发流程 - Harness Engineering 全景图</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1f2937;
+    --border: #374151;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --accent3: #a78bfa;
+    --cyan: #22d3ee;
+    --emerald: #34d399;
+    --amber: #fbbf24;
+    --rose: #fb7185;
+    --text: #f9fafb;
+    --text2: #d1d5db;
+    --text3: #9ca3af;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .header .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  .header h1 {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent2), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+
+  .header p {
+    color: var(--text2);
+    font-size: 16px;
+    max-width: 640px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .header .meta {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  .flow-overview {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 8px 0 32px;
+    scrollbar-width: none;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .flow-overview::-webkit-scrollbar { display: none; }
+
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .flow-step:hover { transform: translateY(-4px); }
+
+  .flow-step .num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 8px;
+    transition: all 0.3s;
+  }
+
+  .flow-step:hover .num, .flow-step.active .num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    box-shadow: 0 0 20px rgba(99,102,241,0.4);
+  }
+
+  .flow-step .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .flow-step:hover .label, .flow-step.active .label {
+    color: var(--accent2);
+  }
+
+  .flow-arrow {
+    color: var(--border);
+    font-size: 18px;
+    margin: 0 4px;
+    flex-shrink: 0;
+    align-self: center;
+    padding-bottom: 20px;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card:hover { border-color: var(--accent); }
+  .card:hover::before { opacity: 1; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(99,102,241,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .card-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: rgba(99,102,241,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(99,102,241,0.3);
+    white-space: nowrap;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .info-row .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+
+  .info-row strong { color: var(--text); font-weight: 600; }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  .tag.highlight {
+    background: rgba(34,211,238,0.1);
+    color: var(--cyan);
+    border-color: rgba(34,211,238,0.3);
+  }
+
+  .tag.warning {
+    background: rgba(251,191,36,0.1);
+    color: var(--amber);
+    border-color: rgba(251,191,36,0.3);
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 8px 0;
+  }
+
+  .gate-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 48px;
+  }
+
+  .gate-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  .gate-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .gate-item:hover {
+    border-color: var(--amber);
+    background: rgba(251,191,36,0.05);
+  }
+
+  .gate-item .g-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--amber);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .gate-item .g-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .gate-item .g-approver {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .arch-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 48px;
+  }
+
+  .arch-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+
+  @media (max-width: 1100px) {
+    .arch-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .arch-layer {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .arch-layer:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .arch-layer .layer-num {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .arch-layer .layer-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .arch-layer .layer-desc {
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.5;
+  }
+
+  .arch-layer.l6 { border-top: 3px solid var(--rose); }
+  .arch-layer.l5 { border-top: 3px solid var(--amber); }
+  .arch-layer.l4 { border-top: 3px solid var(--emerald); }
+  .arch-layer.l3 { border-top: 3px solid var(--cyan); }
+  .arch-layer.l2 { border-top: 3px solid var(--accent2); }
+  .arch-layer.l1 { border-top: 3px solid var(--accent); }
+
+  .toolchain-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 48px;
+  }
+
+  .toolchain-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .tool-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+
+  .tool-item:hover {
+    border-color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  .tool-icon { font-size: 18px; flex-shrink: 0; }
+  .tool-info .tool-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .tool-info .tool-role { font-size: 10px; color: var(--text3); }
+
+  .roadmap-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 48px;
+  }
+
+  .roadmap-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  .roadmap-timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    position: relative;
+  }
+
+  @media (max-width: 900px) {
+    .roadmap-timeline { grid-template-columns: 1fr 1fr; }
+  }
+
+  .roadmap-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .roadmap-item:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+  }
+
+  .roadmap-item::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -9px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    z-index: 2;
+  }
+
+  .roadmap-item:last-child::before { display: none; }
+
+  .roadmap-phase {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 6px;
+  }
+
+  .roadmap-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .roadmap-tasks {
+    list-style: none;
+    padding: 0;
+  }
+
+  .roadmap-tasks li {
+    font-size: 12px;
+    color: var(--text3);
+    padding: 3px 0;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .roadmap-tasks li::before {
+    content: '\203A';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .roadmap-duration {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--cyan);
+    font-weight: 600;
+  }
+
+  .principle-banner {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(34,211,238,0.1));
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .principle-banner h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .principle-items {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+
+  .principle-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .principle-item .p-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(99,102,241,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+  }
+
+  .principle-item .p-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .principle-item .p-desc {
+    font-size: 12px;
+    color: var(--text3);
+    max-width: 200px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .detail-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 48px;
+    animation: slideDown 0.3s ease;
+  }
+
+  .detail-panel.visible { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .detail-panel h3 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .detail-panel .detail-subtitle {
+    font-size: 13px;
+    color: var(--text3);
+    margin-bottom: 24px;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 800px) {
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+
+  .detail-block h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .detail-block ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detail-block li {
+    font-size: 13px;
+    color: var(--text2);
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+    line-height: 1.5;
+  }
+
+  .detail-block li strong { color: var(--text); }
+
+  .close-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.2s;
+  }
+
+  .close-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .file-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">Harness Engineering - 企业级平台</div>
+    <h1>AI-Native 端到端研发工程平台</h1>
+    <p>基于 Harness Engineering 理念，覆盖 BRD → PRD → UX/UI → 代码 → Review → 自测 → 联调 → 测试用例 → 测试执行 → CI/CD 全流程的 AI Agent 系统设计</p>
+    <div class="meta">版本 v1.0 - 2026-04-13 - 10 阶段 - 8 道审批门禁 - 6 层 Harness 架构</div>
+  </div>
+
+  <!-- 流程总览 -->
+  <div class="flow-overview">
+    <div class="flow-step" data-stage="1" onclick="showDetail(1)"><div class="num">1</div><div class="label">BRD 撰写</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="2" onclick="showDetail(2)"><div class="num">2</div><div class="label">PRD 撰写</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="3" onclick="showDetail(3)"><div class="num">3</div><div class="label">UX/UI 设计</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="4" onclick="showDetail(4)"><div class="num">4</div><div class="label">代码开发</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="5" onclick="showDetail(5)"><div class="num">5</div><div class="label">Code Review</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="6" onclick="showDetail(6)"><div class="num">6</div><div class="label">自测 & 调试</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="7" onclick="showDetail(7)"><div class="num">7</div><div class="label">联调 & 冒烟</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="8" onclick="showDetail(8)"><div class="num">8</div><div class="label">用例产出</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="9" onclick="showDetail(9)"><div class="num">9</div><div class="label">用例执行</div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step" data-stage="10" onclick="showDetail(10)"><div class="num">10</div><div class="label">CI/CD 部署</div></div>
+  </div>
+
+  <!-- 阶段详情面板 -->
+  <div class="detail-panel" id="detailPanel">
+    <h3><span id="detailIcon">📋</span><span id="detailTitle">BRD Writer Agent</span></h3>
+    <div class="detail-subtitle" id="detailSubtitle">需求 → 商业需求文档</div>
+    <div class="detail-grid">
+      <div class="detail-block">
+        <h4>核心职责</h4>
+        <ul id="detailResponsibilities"></ul>
+      </div>
+      <div class="detail-block">
+        <h4>Harness 设计要点</h4>
+        <ul id="detailHarness"></ul>
+      </div>
+      <div class="detail-block">
+        <h4>关键约束（Gate）</h4>
+        <ul id="detailGates"></ul>
+      </div>
+      <div class="detail-block">
+        <h4>输出物</h4>
+        <ul id="detailOutputs"></ul>
+      </div>
+    </div>
+    <button class="close-btn" onclick="hideDetail()">收起详情</button>
+  </div>
+
+  <!-- 核心原则 -->
+  <div class="principle-banner">
+    <h2>核心设计原则</h2>
+    <div class="principle-items">
+      <div class="principle-item">
+        <div class="p-icon">⚙️</div>
+        <div class="p-title">Engineering over Intelligence</div>
+        <div class="p-desc">承认模型能力边界，用工程系统补齐，而非依赖模型自身能力</div>
+      </div>
+      <div class="principle-item">
+        <div class="p-icon">🔒</div>
+        <div class="p-title">Auditability First</div>
+        <div class="p-desc">企业级合规要求每个 Agent 动作可追溯、可审查、可回滚</div>
+      </div>
+      <div class="principle-item">
+        <div class="p-icon">🚪</div>
+        <div class="p-title">Human-in-the-Loop at Gates</div>
+        <div class="p-desc">全自动执行，但在关键节点设置人工审批门禁 Approval Gate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 六层架构 -->
+  <div class="arch-section">
+    <h2>🛡️ Harness 六层架构</h2>
+    <div class="arch-grid">
+      <div class="arch-layer l1">
+        <div class="layer-num">L1</div>
+        <div class="layer-name">信息边界层</div>
+        <div class="layer-desc">角色定义<br>上下文裁剪<br>知识注入</div>
+      </div>
+      <div class="arch-layer l2">
+        <div class="layer-num">L2</div>
+        <div class="layer-name">工具系统层</div>
+        <div class="layer-desc">API 调用<br>CLI 操作<br>平台集成</div>
+      </div>
+      <div class="arch-layer l3">
+        <div class="layer-num">L3</div>
+        <div class="layer-name">执行编排层</div>
+        <div class="layer-desc">任务串联<br>状态机驱动<br>流程自动化</div>
+      </div>
+      <div class="arch-layer l4">
+        <div class="layer-num">L4</div>
+        <div class="layer-name">记忆与状态层</div>
+        <div class="layer-desc">跨阶段上下文<br>版本追溯<br>交接文档</div>
+      </div>
+      <div class="arch-layer l5">
+        <div class="layer-num">L5</div>
+        <div class="layer-name">评估与观测层</div>
+        <div class="layer-desc">质量指标<br>安全扫描<br>可观测性</div>
+      </div>
+      <div class="arch-layer l6">
+        <div class="layer-num">L6</div>
+        <div class="layer-name">约束与恢复层</div>
+        <div class="layer-desc">合规约束<br>权限控制<br>自动回滚</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 四个核心 Agent 卡片 -->
+  <div class="main-grid">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">💻</div>
+        <div>
+          <div class="card-title">Dev Agent（代码开发 Agent）</div>
+          <div class="card-subtitle">阶段 4 - 最核心的 Agent 实现</div>
+        </div>
+        <div class="card-badge">核心阶段</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="dot"></div><div><strong>AGENTS.md 是 Agent 的"地图 + 防错手册"</strong>，每行对应一个历史失败案例</div></div>
+        <hr class="divider">
+        <div class="info-row"><div class="dot"></div><div><strong>L1 信息边界</strong>：角色设定 + 上下文裁剪 + 项目知识注入</div></div>
+        <div class="info-row"><div class="dot"></div><div><strong>L2 工具系统</strong>：IDE / Git API / CI 触发 / RAG 知识库</div></div>
+        <div class="info-row"><div class="dot"></div><div><strong>L3 执行编排</strong>：功能点拉取 → 依赖分析 → 编写代码 → 自检</div></div>
+        <div class="info-row"><div class="dot"></div><div><strong>L4 状态管理</strong>：任务状态 JSON + Context Reset（利用率 > 60%）</div></div>
+        <div class="info-row"><div class="dot"></div><div><strong>L5 评估</strong>：Lint + 类型检查 + 覆盖率 ≥ 80% + SAST 安全扫描</div></div>
+        <div class="info-row"><div class="dot"></div><div><strong>L6 约束</strong>：单 PR 单功能 + 提交格式约束 + 安全红线</div></div>
+        <hr class="divider">
+        <div class="tag-list">
+          <span class="tag highlight">覆盖率 ≥ 80%</span>
+          <span class="tag highlight">SAST = 0 高危</span>
+          <span class="tag warning">TL 审批</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🧪</div>
+        <div>
+          <div class="card-title">QA Agent（测试 Agent）</div>
+          <div class="card-subtitle">阶段 8 + 9 - 用例产出 & 执行</div>
+        </div>
+        <div class="card-badge">质量保障</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="dot"></div><div><strong>QA Planner Agent</strong>（阶段 8）：PRD → 完整测试用例库</div></div>
+        <div class="info-row"><div class="dot"></div><div><strong>QA Exec Agent</strong>（阶段 9）：执行用例 + 自动提单 + 回归验证</div></div>
+        <hr class="divider">
+        <div class="info-row"><div class="dot"></div><div>PRD 功能覆盖率检查：每个功能点必须有对应用例</div></div>
+        <div class="info-row"><div class="dot"></div><div>等价类完整性：正向 / 逆向 / 边界三类用例齐全</div></div>
+        <div class="info-row"><div class="dot"></div><div>P0 缺陷策略：发现 P0 立即暂停测试并通知 PM + TL</div></div>
+        <div class="tag-list">
+          <span class="tag highlight">P0 用例 ≥ 10</span>
+          <span class="tag highlight">覆盖率 100%</span>
+          <span class="tag warning">QA Lead 审批</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🔍</div>
+        <div>
+          <div class="card-title">Review Agent（代码审查 Agent）</div>
+          <div class="card-subtitle">阶段 5 - 自动化 Code Review</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="dot"></div><div>多维度评分：代码质量 / 安全性 / 可维护性 / 测试充分性</div></div>
+        <div class="info-row"><div class="dot"></div><div>问题分级：Blocker / Major / Minor / Suggestion</div></div>
+        <div class="info-row"><div class="dot"></div><div>通过标准：Blocker = 0，Major ≤ 2，否则无法合并</div></div>
+        <div class="info-row"><div class="dot"></div><div>可生成自动化修复建议，Agent 可直接采纳</div></div>
+        <div class="tag-list">
+          <span class="tag highlight">Blocker = 0</span>
+          <span class="tag warning">TL 确认</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🚀</div>
+        <div>
+          <div class="card-title">Deploy Agent（部署 Agent）</div>
+          <div class="card-subtitle">阶段 10 - CI/CD 全链路自动化</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="dot"></div><div>完整流水线：构建 → 镜像扫描 → Staging → 灰度 → 全量</div></div>
+        <div class="info-row"><div class="dot"></div><div>灰度策略：5% → 30% → 100%，期间错误率超标自动回滚</div></div>
+        <div class="info-row"><div class="dot"></div><div>自动回滚触发：错误率 > 1% 或 P95 > 500ms</div></div>
+        <div class="info-row"><div class="dot"></div><div>部署时间窗口：仅工作日 10:00-17:00</div></div>
+        <div class="info-row"><div class="dot"></div><div>Gate：PM + TL + QA 三方审批</div></div>
+        <div class="tag-list">
+          <span class="tag highlight">自动回滚</span>
+          <span class="tag highlight">灰度发布</span>
+          <span class="tag warning">三方审批</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 全局质量门禁 -->
+  <div class="gate-section">
+    <h2>🚪 全局质量门禁（8 道 Gate）</h2>
+    <div class="gate-grid">
+      <div class="gate-item"><div class="g-label">G1</div><div class="g-name">BRD → PRD</div><div class="g-approver">PM 审批</div></div>
+      <div class="gate-item"><div class="g-label">G2</div><div class="g-name">PRD → UX</div><div class="g-approver">PM + TL</div></div>
+      <div class="gate-item"><div class="g-label">G3</div><div class="g-name">UX → Dev</div><div class="g-approver">PM + UX</div></div>
+      <div class="gate-item"><div class="g-label">G4</div><div class="g-name">Dev → Review</div><div class="g-approver">TL 审批</div></div>
+      <div class="gate-item"><div class="g-label">G5</div><div class="g-name">Review → Test</div><div class="g-approver">TL 确认</div></div>
+      <div class="gate-item"><div class="g-label">G6</div><div class="g-name">Test → Staging</div><div class="g-approver">QA 冒烟</div></div>
+      <div class="gate-item"><div class="g-label">G7</div><div class="g-name">Staging → Prod</div><div class="g-approver">PM+TL+QA</div></div>
+      <div class="gate-item"><div class="g-label">G8</div><div class="g-name">Pre-Deploy</div><div class="g-approver">审批流</div></div>
+    </div>
+  </div>
+
+  <!-- 工具链集成 -->
+  <div class="toolchain-section">
+    <h2>🔧 工具链集成架构</h2>
+    <div class="tool-grid">
+      <div class="tool-item"><div class="tool-icon">📄</div><div class="tool-info"><div class="tool-name">Confluence / 飞书</div><div class="tool-role">BRD / PRD 存储</div></div></div>
+      <div class="tool-item"><div class="tool-icon">🎨</div><div class="tool-info"><div class="tool-name">Figma API</div><div class="tool-role">设计稿生成与标注</div></div></div>
+      <div class="tool-item"><div class="tool-icon">🐙</div><div class="tool-info"><div class="tool-name">GitHub / GitLab</div><div class="tool-role">代码托管 + PR</div></div></div>
+      <div class="tool-item"><div class="tool-icon">📋</div><div class="tool-info"><div class="tool-name">Jira / TAPD</div><div class="tool-role">缺陷追踪</div></div></div>
+      <div class="tool-item"><div class="tool-icon">🔒</div><div class="tool-info"><div class="tool-name">SonarQube</div><div class="tool-role">代码质量扫描</div></div></div>
+      <div class="tool-item"><div class="tool-icon">🛡️</div><div class="tool-info"><div class="tool-name">Snyk / Veracode</div><div class="tool-role">安全扫描</div></div></div>
+      <div class="tool-item"><div class="tool-icon">🧪</div><div class="tool-info"><div class="tool-name">TestRail / Zephyr</div><div class="tool-role">测试用例管理</div></div></div>
+      <div class="tool-item"><div class="tool-icon">⚡</div><div class="tool-info"><div class="tool-name">ArgoCD / Jenkins</div><div class="tool-role">CI/CD 流水线</div></div></div>
+      <div class="tool-item"><div class="tool-icon">📊</div><div class="tool-info"><div class="tool-name">Prometheus + Grafana</div><div class="tool-role">监控告警</div></div></div>
+      <div class="tool-item"><div class="tool-icon">📝</div><div class="tool-info"><div class="tool-name">ELK / Loki</div><div class="tool-role">日志系统</div></div></div>
+    </div>
+  </div>
+
+  <!-- 实施路线图 -->
+  <div class="roadmap-section">
+    <h2>🗺️ 实施路线图（8 个月）</h2>
+    <div class="roadmap-timeline">
+      <div class="roadmap-item">
+        <div class="roadmap-phase">Phase 1</div>
+        <div class="roadmap-title">基础设施搭建</div>
+        <ul class="roadmap-tasks">
+          <li>Agent 控制平面</li>
+          <li>Harness 六层部署</li>
+          <li>工具链适配层</li>
+        </ul>
+        <div class="roadmap-duration">第 1-2 个月</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-phase">Phase 2</div>
+        <div class="roadmap-title">单阶段试点</div>
+        <ul class="roadmap-tasks">
+          <li>Dev Agent 试点</li>
+          <li>Review + Debug Agent</li>
+          <li>六层有效性验证</li>
+        </ul>
+        <div class="roadmap-duration">第 3-4 个月</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-phase">Phase 3</div>
+        <div class="roadmap-title">全流程串联</div>
+        <ul class="roadmap-tasks">
+          <li>剩余 7 阶段接入</li>
+          <li>跨阶段上下文传递</li>
+          <li>8 道质量门禁</li>
+        </ul>
+        <div class="roadmap-duration">第 5-6 个月</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-phase">Phase 4</div>
+        <div class="roadmap-title">企业级增强</div>
+        <ul class="roadmap-tasks">
+          <li>权限系统深度集成</li>
+          <li>合规审计日志</li>
+          <li>多租户隔离</li>
+        </ul>
+        <div class="roadmap-duration">第 7-8 个月</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="file-link">📄 完整设计文档：harness_rd_design.md</div>
+
+</div>
+
+<script>
+  var stages = {
+    1: {
+      icon: '📋', title: 'BRD Writer Agent', subtitle: '需求 → 商业需求文档',
+      responsibilities: [
+        '理解原始需求，转化为结构化商业文档',
+        '市场分析与竞品调研',
+        '商业画布与风险评估',
+        'ROI 量化和目标拆解'
+      ],
+      harness: [
+        'L1: 角色设定（产品顾问）+ 历史 BRD 模板注入',
+        'L2: RAG 知识库 + 竞品分析 API',
+        'L5: 自检清单（目标是否清晰、数据是否有来源）',
+        'L6: 五大章节格式约束 + PM 审批 Gate'
+      ],
+      gates: ['目标可量化', '市场数据有来源', 'PM 审批通过'],
+      outputs: ['BRD.md', '交接文档（摘要 + 关键决策点）']
+    },
+    2: {
+      icon: '🏗️', title: 'PRD Architect Agent', subtitle: 'BRD → 功能规格文档',
+      responsibilities: [
+        '功能拆解（Feature Breakdown）',
+        '用户故事映射与故事点估算',
+        '优先级排序（P0 / P1 / P2）',
+        '技术依赖与合规风险分析'
+      ],
+      harness: [
+        'L1: 技术边界注入（当前架构 + 技术栈）',
+        'L3: BRD → 功能拆解 → 优先级 → 技术依赖流程',
+        'L5: 功能完整性检查 + 排期合理性评估',
+        'L6: 技术可行性约束 + GDPR 合规标注 + PM+TL 双 Gate'
+      ],
+      gates: ['功能点完整覆盖 BRD 目标', '技术可行性确认', 'PM + TL 审批'],
+      outputs: ['PRD.md', '功能列表 JSON', '技术风险清单']
+    },
+    3: {
+      icon: '🎨', title: 'Design Agent', subtitle: 'PRD → 交互方案 & 设计稿',
+      responsibilities: [
+        '信息架构（IA）与页面流程图',
+        '交互方案设计（含状态设计）',
+        '视觉规范落地（Design Token）',
+        '调用 Figma API 生成设计稿'
+      ],
+      harness: [
+        'L1: Design Token 约束 + WCAG 2.1 AA 无障碍标准',
+        'L2: Figma API 创建 Frames / Components / Auto Layout',
+        'L5: Token 合规检查 + 跨端一致性验证',
+        'L6: 主色 ≤ 2 种 + 字体统一 ≤ 2 种 + PM+UX 双 Gate'
+      ],
+      gates: ['Design Token 100% 合规', 'hover/focus/active 状态完整', 'PM + UX 审批'],
+      outputs: ['Figma 设计稿链接', '设计规范文档', '组件清单 + 状态说明']
+    },
+    4: {
+      icon: '💻', title: 'Dev Agent', subtitle: 'PRD + 设计稿 → 完整代码',
+      responsibilities: [
+        '后端代码实现（API + 业务逻辑）',
+        '前端代码实现（组件 + 页面）',
+        '单元测试生成与运行',
+        '代码格式化 + 安全合规自检'
+      ],
+      harness: [
+        'L1: AGENTS.md（项目地图 + 踩坑记录 + 安全红线）',
+        'L2: IDE / Git API / RAG 知识库 / SonarQube',
+        'L3: 功能点拉取 → 依赖分析 → 后端 → 前端 → 测试 → PR',
+        'L4: 任务状态 JSON + Context Reset（利用率 > 60%）',
+        'L5: 覆盖率 ≥ 80% + SAST = 0 高危 + 合规扫描',
+        'L6: 单 PR 单功能 + 提交格式 + TL 审批 Gate'
+      ],
+      gates: ['覆盖率 ≥ 80%', 'SAST 高危 = 0', 'TL 审批'],
+      outputs: ['代码 PR', '代码自检报告', '安全扫描报告', '交接文档']
+    },
+    5: {
+      icon: '🔍', title: 'Review Agent', subtitle: '自动化 Code Review',
+      responsibilities: [
+        '多维度代码质量评分（1-10）',
+        '安全漏洞扫描结果分析',
+        '架构合规性检查',
+        '自动化修复建议生成'
+      ],
+      harness: [
+        'L3: PR 解析 → 质量扫描 → 安全扫描 → 合规检查 → 评审报告',
+        'L5: 质量 / 安全性 / 可维护性 / 测试充分性四维评分',
+        'L6: Blocker = 0 / Major ≤ 2 才可合并 + TL 确认'
+      ],
+      gates: ['Blocker = 0', 'Major ≤ 2', 'TL 确认评审结果'],
+      outputs: ['Review 报告（问题列表 + 评分）', '自动化修复建议']
+    },
+    6: {
+      icon: '🔧', title: 'Debug Agent', subtitle: '自测 & 调试修复',
+      responsibilities: [
+        '运行单元测试 + 集成测试',
+        '覆盖率报告生成',
+        '失败用例自动定位与修复',
+        '回归验证直到测试全部通过'
+      ],
+      harness: [
+        'L3: 测试发现 → 执行 → 覆盖率 → 失败分析 → 修复 → 回归',
+        'L5: 覆盖率门禁（≥ 80%）+ 失败重试策略（3 次后人工介入）',
+        'L6: 回归防护（修复不得引入新失败）+ QA 确认'
+      ],
+      gates: ['覆盖率 ≥ 80%', '所有测试通过', 'QA 确认'],
+      outputs: ['单元测试报告', '覆盖率报告', 'Bug 修复记录']
+    },
+    7: {
+      icon: '🔗', title: 'Integration Agent', subtitle: '联调 & 冒烟测试',
+      responsibilities: [
+        '多模块接口联调（按依赖拓扑排序）',
+        'WireMock / MockServer 接口 Mock',
+        '冒烟测试执行',
+        '联调问题定位与修复'
+      ],
+      harness: [
+        'L2: Postman / Newman + WireMock + 环境管理',
+        'L3: 环境准备 → Mock → 联调 → 冒烟 → 问题修复 → 回归',
+        'L5: 接口一致性 + 冒烟通过率 100% + P95 响应 < 200ms',
+        'L6: 联调顺序约束（拓扑排序）+ 单接口失败隔离 + QA 冒烟通过'
+      ],
+      gates: ['核心流程 100% 通过', 'P95 < 200ms', 'QA 冒烟确认'],
+      outputs: ['联调报告', '冒烟测试报告']
+    },
+    8: {
+      icon: '📝', title: 'QA Planner Agent', subtitle: 'PRD → 测试用例库',
+      responsibilities: [
+        '功能点提取与测试场景识别',
+        '等价类划分 + 边界值分析',
+        '测试用例编写（正向 / 逆向 / 边界）',
+        '优先级标注（P0 / P1 / P2）'
+      ],
+      harness: [
+        'L3: PRD 解析 → 场景识别 → 等价类 → 边界值 → 用例编写',
+        'L5: PRD 覆盖率 100% + 等价类三向齐全',
+        'L6: 格式约束（P0 ≥ 10 个）+ QA Lead 审批'
+      ],
+      gates: ['PRD 覆盖率 100%', 'P0 用例 ≥ 10', 'QA Lead 审批'],
+      outputs: ['测试用例库（可导入 TestRail）', '测试计划文档']
+    },
+    9: {
+      icon: '🧪', title: 'QA Exec Agent', subtitle: '测试执行 & 缺陷管理',
+      responsibilities: [
+        '批量执行测试用例并记录结果',
+        '失败用例自动截图 + 提单',
+        '跟踪缺陷修复进度',
+        '回归验证 + 测试报告'
+      ],
+      harness: [
+        'L2: TestRail API + Jira / TAPD API + 截图工具',
+        'L3: 用例批次执行 → 记录 → 截图 → 提单 → 回归 → 关闭',
+        'L5: 执行进度 / 通过率 / P0 阻断检查',
+        'L6: P0 缺陷立即通知 PM+TL + 失败自动重开缺陷单 + QA Lead 确认'
+      ],
+      gates: ['P0 缺陷 = 0', '全量通过率目标达成', 'QA Lead 审批'],
+      outputs: ['测试报告（执行结果 + 缺陷汇总 + 发布建议）']
+    },
+    10: {
+      icon: '🚀', title: 'Deploy Agent', subtitle: 'CI/CD 自动化部署',
+      responsibilities: [
+        'Docker 镜像构建 + 安全扫描',
+        'Harbor 镜像仓库推送',
+        'Staging 环境部署 + 冒烟验证',
+        '生产灰度发布 + 监控 + 自动回滚'
+      ],
+      harness: [
+        'L2: Docker + kubectl/Helm + Prometheus + ELK',
+        'L3: 构建 → 镜像扫描 → Staging → 灰度（5%→30%→100%）',
+        'L4: 部署状态记录 + 回滚快照保存',
+        'L5: 错误率 ≤ 0.1% + P95 响应时间基线',
+        'L6: 工作日时间窗口 + 自动回滚（错误率>1% 或 P95>500ms）+ PM+TL+QA 三方 Gate'
+      ],
+      gates: ['CI 全部通过', '三方审批', '工作日时间窗口'],
+      outputs: ['部署记录', '监控报告', '回滚记录（如触发）']
+    }
+  };
+
+  function showDetail(num) {
+    var s = stages[num];
+    document.getElementById('detailIcon').textContent = s.icon;
+    document.getElementById('detailTitle').textContent = s.title;
+    document.getElementById('detailSubtitle').textContent = s.subtitle;
+
+    var respEl = document.getElementById('detailResponsibilities');
+    var harnEl = document.getElementById('detailHarness');
+    var gateEl = document.getElementById('detailGates');
+    var outEl = document.getElementById('detailOutputs');
+
+    respEl.innerHTML = s.responsibilities.map(function(r) { return '<li>' + r + '</li>'; }).join('');
+    harnEl.innerHTML = s.harness.map(function(h) { return '<li>' + h + '</li>'; }).join('');
+    gateEl.innerHTML = s.gates.map(function(g) { return '<li>' + g + '</li>'; }).join('');
+    outEl.innerHTML = s.outputs.map(function(o) { return '<li>' + o + '</li>'; }).join('');
+
+    var steps = document.querySelectorAll('.flow-step');
+    for (var i = 0; i < steps.length; i++) {
+      steps[i].classList.toggle('active', parseInt(steps[i].getAttribute('data-stage')) === num);
+    }
+
+    document.getElementById('detailPanel').classList.add('visible');
+    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function hideDetail() {
+    document.getElementById('detailPanel').classList.remove('visible');
+    var steps = document.querySelectorAll('.flow-step');
+    for (var i = 0; i < steps.length; i++) {
+      steps[i].classList.remove('active');
+    }
+  }
+</script>
+</body>
+</html>
